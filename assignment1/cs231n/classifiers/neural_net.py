@@ -77,6 +77,9 @@ class TwoLayerNet(object):
     # shape (N, C).                                                             #
     #############################################################################
     pass
+    H = np.clip(X.dot(W1) + b1, 0, None)
+    scores = H.dot(W2) + b2
+    
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -94,12 +97,31 @@ class TwoLayerNet(object):
     # classifier loss.                                                          #
     #############################################################################
     pass
+    scores = np.exp(scores)
+    sum_scores = np.sum(scores, axis = 1)
+    loss = -1 * np.mean(np.log(scores[range(N), y] / sum_scores)) + reg *\
+           (np.sum(W1 * W1) + np.sum(W2 * W2))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
 
     # Backward pass: compute gradients
     grads = {}
+    '''hidden layer to output layer'''
+    dS = scores / sum_scores.reshape(N, 1)
+    dS[range(N), y] -= 1
+    dW2 = H.T.dot(dS)
+    '''dHa: gradients to the activations of hidden layer
+       dHz: gradients to the inputs of hiddent layer'''
+    dHa = dS.dot(W2.T)
+    dHz = (H > 0) * dHa
+    grads['W2'] = dW2 / N + 2 * reg * W2
+    grads['b2'] = np.mean(dS, axis = 0)
+    
+    '''input layer to hidden layer'''
+    dW1 = X.T.dot(dHz)
+    grads['W1'] = dW1 / N + 2 * reg * W1
+    grads['b1'] = np.mean(dHz, axis = 0)
     #############################################################################
     # TODO: Compute the backward pass, computing the derivatives of the weights #
     # and biases. Store the results in the grads dictionary. For example,       #
@@ -150,6 +172,9 @@ class TwoLayerNet(object):
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
       pass
+      indices = np.random.choice(num_train, batch_size)
+      X_batch, y_batch = X[indices], y[indices]
+    
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -165,6 +190,11 @@ class TwoLayerNet(object):
       # stored in the grads dictionary defined above.                         #
       #########################################################################
       pass
+      self.params['W1'] -= learning_rate * grads['W1']
+      self.params['b1'] -= learning_rate * grads['b1']
+      self.params['W2'] -= learning_rate * grads['W2']
+      self.params['b2'] -= learning_rate * grads['b2']
+    
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -210,10 +240,14 @@ class TwoLayerNet(object):
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
     pass
+    '''Unpack parameters'''
+    W1, b1, W2, b2 = self.params['W1'], self.params['b1'], self.params['W2'], \
+                     self.params['b2']
+    y_pred = np.argmax(np.clip(X.dot(W1) + b1, 0, None).dot(W2)\
+                       + b2, axis = 1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
 
     return y_pred
-
 
